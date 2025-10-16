@@ -8,7 +8,9 @@ import { getAuth, updateProfile } from 'firebase/auth';
 import { getCroppedImg } from '../utils/cropImage';
 import { useAuth } from '../auth/authContext';
 import { GoogleSignIn } from '../auth/GoogleSignIn';
-import { RegisterUser } from '../auth/Register';
+import { RegisterUser } from "../auth/RegisterUser";
+
+
 import { SignInUser } from '../auth/SignIn';
 import PostProduct from '../post/PostProduct';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
@@ -237,3 +239,5 @@ const ImageCropUploader = () => {
 };
 
 export default ImageCropUploader;
+
+
