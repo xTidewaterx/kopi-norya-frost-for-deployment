@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "firebase-admin";
 
-import serviceAccount from "../../../firebase/serviceAccountKey.json"; // adjust path
+
 import { v4 as uuidv4 } from "uuid";
 
 if (!admin.apps.length) {
@@ -74,3 +74,4 @@ export async function POST(req) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
