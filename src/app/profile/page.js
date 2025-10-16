@@ -239,5 +239,3 @@ const ImageCropUploader = () => {
 };
 
 export default ImageCropUploader;
-
-
