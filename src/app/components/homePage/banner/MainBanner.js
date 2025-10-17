@@ -126,13 +126,19 @@ export default function MainBanner() {
     const updateFont = () => {
       const width = window.innerWidth;
       let fontSize;
+      const isMobile = width <= 768; // Define mobile breakpoint
 
-      if (width <= 768) {
+      if (isMobile) {
         fontSize = Math.max(width / 150, 3.2);
       } else if (width <= 2500) {
         fontSize = Math.max(width / 170, 2.8);
       } else {
         fontSize = Math.max((width / 140) * 0.8, 2.8);
+      }
+      
+      // Apply 20% size reduction on phone screens
+      if (isMobile) {
+        fontSize *= 0.8; // Reduce by 20%
       }
 
       let lineHeightMultiplier;
@@ -190,4 +196,4 @@ export default function MainBanner() {
       </div>
     </div>
   );
-}
+        }
