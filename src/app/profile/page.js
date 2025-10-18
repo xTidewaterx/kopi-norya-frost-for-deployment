@@ -244,7 +244,7 @@ const ImageCropUploader = () => {
       `}</style>
 
       {/* 3D Canvas */}
-      <div className='m-12 ml-0' style={{ width: '40vw', height: '54vh' }}>
+      <div className='m-12 ml-0' style={{ width: '70vw', height: '54vh' }}>
         <Canvas
           camera={{ position: [100, 2, 100], fov: 50, near: 0.1, far: 1000 }}
           style={{ width: '100%', height: '100%' }}
