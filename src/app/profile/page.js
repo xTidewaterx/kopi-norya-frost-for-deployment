@@ -9,7 +9,9 @@ import { getCroppedImg } from '../utils/cropImage';
 import { useAuth } from '../auth/authContext';
 import { GoogleSignIn } from '../auth/GoogleSignIn';
 import { RegisterUser } from "../auth/RegisterUser";
-
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import Deer from '../components/Deer';
 
 import { SignInUser } from '../auth/SignIn';
 import PostProduct from '../post/PostProduct';
@@ -234,6 +236,39 @@ const ImageCropUploader = () => {
           top: 0; left: 0; right: 0; bottom: 0; z-index: 0;
         }
       `}</style>
+
+
+            <div className='m-12 ml-0'
+        style={{
+          width: '40vw',
+          height: '54vh',
+         // background: 'linear-gradient(to bottom, #87CEFA, #4682B4)', // light to deep blue
+        }}
+      >
+        <Canvas
+          camera={{ position: [100, 2, 100], fov: 50, near: 0.1, far: 1000 }}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[5, 5, 5]} intensity={4.2} castShadow />
+          <directionalLight position={[18, -8, -9]} intensity={2.8} />
+          <spotLight
+            position={[0, -2, 0]}
+            angle={0.5}
+            penumbra={1}
+            intensity={1.4}
+            color="#ffffff"
+            castShadow
+          />
+          <Deer position={[0, 0, 0]} scale={0.28} />
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={true}
+            target={[0, 0, 0]}
+          />
+        </Canvas>
+      </div>
     </div>
   );
 };
