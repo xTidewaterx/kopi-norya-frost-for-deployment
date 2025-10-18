@@ -12,7 +12,6 @@ import { RegisterUser } from "../auth/RegisterUser";
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import Deer from '../components/Deer';
-
 import { SignInUser } from '../auth/SignIn';
 import PostProduct from '../post/PostProduct';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
@@ -113,6 +112,8 @@ const ImageCropUploader = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center px-4 py-10 space-y-8">
+
+      {/* Profile / Edit Section */}
       <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-lg space-y-6">
         {!editing ? (
           <>
@@ -155,9 +156,7 @@ const ImageCropUploader = () => {
                   Sign Out
                 </button>
               </div>
-            ) : (
-              <SignInUser />
-            )}
+            ) : null}
           </>
         ) : (
           <>
@@ -219,7 +218,14 @@ const ImageCropUploader = () => {
         )}
       </div>
 
-      <RegisterUser />
+      {/* ⚡ Auth Section – only visible when user not signed in */}
+      {!user && (
+        <div className="w-full max-w-lg bg-white shadow-xl rounded-3xl p-6 flex flex-col items-center space-y-4">
+          <SignInUser />
+          <RegisterUser />
+        </div>
+      )}
+
       <UploadProductIfSignedIn />
 
       <style jsx>{`
@@ -237,14 +243,8 @@ const ImageCropUploader = () => {
         }
       `}</style>
 
-
-            <div className='m-12 ml-0'
-        style={{
-          width: '40vw',
-          height: '54vh',
-         // background: 'linear-gradient(to bottom, #87CEFA, #4682B4)', // light to deep blue
-        }}
-      >
+      {/* 3D Canvas */}
+      <div className='m-12 ml-0' style={{ width: '40vw', height: '54vh' }}>
         <Canvas
           camera={{ position: [100, 2, 100], fov: 50, near: 0.1, far: 1000 }}
           style={{ width: '100%', height: '100%' }}
@@ -260,13 +260,12 @@ const ImageCropUploader = () => {
             color="#ffffff"
             castShadow
           />
-          <Deer position={[0, 0, 0]} scale={0.28} />
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            enableRotate={true}
-            target={[0, 0, 0]}
-          />
+<Deer
+  position={[0, 0, 0]}
+  scale={0.28}
+  modelPath="/models/deer/scene.gltf"
+/>
+          <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} target={[0, 0, 0]} />
         </Canvas>
       </div>
     </div>

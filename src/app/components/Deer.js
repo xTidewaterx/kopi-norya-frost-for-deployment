@@ -1,20 +1,18 @@
-// src/components/Deer.jsx
 import { useGLTF, useAnimations } from '@react-three/drei';
-import { useRef } from 'react';
-import { useEffect } from 'react';
-export default function Deer(props) {
+import { useRef, useEffect } from 'react';
+
+export default function Deer({ modelPath, ...props }) {
   const ref = useRef();
-  const { scene, animations } = useGLTF('/models/deer/scene.gltf');
+  const { scene, animations } = useGLTF(modelPath);
   const { actions } = useAnimations(animations, ref);
 
-  // Play first animation on mount
   useEffect(() => {
     if (actions && animations.length > 0) {
       actions[animations[0].name]?.play();
     }
   }, [actions, animations]);
 
+  useGLTF.preload(modelPath);
+
   return <primitive ref={ref} object={scene} {...props} />;
 }
-
-useGLTF.preload('/models/deer/scene.gltf');
