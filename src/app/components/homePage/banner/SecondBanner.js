@@ -23,7 +23,7 @@ export default function HeroBanner() {
 <div className=""></div>
       {/* Text layer unaffected by filter */}
       <div className="absolute inset-0 flex items-center justify-center z-20">
-        <h2 className="text-white p-12 text-8xl mb-0">
+        <h2 className="text-white p-12 text-8xl mb-0 text-center">
           Nora Lyvia
         </h2>
       </div>

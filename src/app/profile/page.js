@@ -27,19 +27,19 @@ const ImageCropUploader = () => {
 
   const auth = getAuth();
   const db = getFirestore();
+  const storage = getStorage();
   const user = auth.currentUser;
   const { user: contextUser } = useAuth();
 
-  const effectiveName = user?.displayName || contextUser?.fullName || user?.email || 'Your Profile';
-  const profilePic = user?.photoURL;
+  const effectiveName = user?.displayName || contextUser?.fullName || user?.email || 'No Name';
+  const profilePic = user?.photoURL || '';
 
-  // 🔹 REFRESH USER INFO ON MOUNT
   useEffect(() => {
     const reloadUser = async () => {
       const current = auth.currentUser;
       if (current) {
         try {
-          await current.reload(); // refresh token and profile info
+          await current.reload();
         } catch (err) {
           console.error('Failed to reload user:', err);
         }
@@ -72,22 +72,22 @@ const ImageCropUploader = () => {
 
     let downloadURL = profilePic;
 
-    if (imageSrc && croppedAreaPixels) {
-      const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
-      const storage = getStorage();
-      const storageRef = ref(storage, `profilePics/${user.uid}.jpg`);
-      await uploadBytes(storageRef, blob);
-      downloadURL = await getDownloadURL(storageRef);
-    }
-
-    // Update Auth profile
-    await updateProfile(user, {
-      displayName: newName || user.displayName,
-      photoURL: downloadURL,
-    });
-
-    // Update Firestore
     try {
+      // Only upload if user selected and cropped a new image
+      if (imageSrc && croppedAreaPixels) {
+        const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
+        const storageRef = ref(storage, `profilePics/${user.uid}.jpg`);
+        await uploadBytes(storageRef, blob);
+        downloadURL = await getDownloadURL(storageRef);
+      }
+
+      // Update Firebase Auth profile
+      await updateProfile(user, {
+        displayName: newName || user.displayName,
+        photoURL: downloadURL,
+      });
+
+      // Update Firestore documents
       const userDocRef = doc(db, 'users', user.uid);
       const publicUserDocRef = doc(db, 'publicUsers', user.uid);
 
@@ -97,23 +97,17 @@ const ImageCropUploader = () => {
       ]);
 
       alert('Profile updated successfully!');
+      setEditing(false);
     } catch (error) {
-      console.error('Error updating Firestore documents:', error);
-      alert('Profile updated in auth, but failed to update Firestore.');
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile.');
     }
-
-    setEditing(false);
   };
 
-  const UploadProductIfSignedIn = () => {
-    if (user?.uid) return <PostProduct />;
-    return null;
-  };
+  const UploadProductIfSignedIn = () => user?.uid ? <PostProduct /> : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center px-4 py-10 space-y-8">
-
-      {/* Profile / Edit Section */}
       <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-lg space-y-6">
         {!editing ? (
           <>
@@ -127,36 +121,23 @@ const ImageCropUploader = () => {
                 />
               </div>
             )}
-
-            {user && (
-              <h1 className="text-center text-2xl font-light text-blue-800">
-                Welcome, <span className="font-semibold">{effectiveName}</span>
-              </h1>
-            )}
-
-            {user ? (
-              <div className="space-y-3">
-                <button
-                  onClick={() => setEditing(true)}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow transition"
-                >
-                  Edit Profile
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      await auth.signOut();
-                      alert('You have been signed out.');
-                    } catch (error) {
-                      console.error('Sign out failed:', error);
-                    }
-                  }}
-                  className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium shadow transition"
-                >
-                  Sign Out
-                </button>
-              </div>
-            ) : null}
+            <h1 className="text-center text-2xl font-light text-blue-800">
+              Welcome, <span className="font-semibold">{effectiveName}</span>
+            </h1>
+            <div className="space-y-3">
+              <button
+                onClick={() => setEditing(true)}
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow transition"
+              >
+                Edit Profile
+              </button>
+              <button
+                onClick={async () => { await auth.signOut(); alert('You have been signed out.'); }}
+                className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium shadow transition"
+              >
+                Sign Out
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -218,7 +199,6 @@ const ImageCropUploader = () => {
         )}
       </div>
 
-      {/* ⚡ Auth Section – only visible when user not signed in */}
       {!user && (
         <div className="w-full max-w-lg bg-white shadow-xl rounded-3xl p-6 flex flex-col items-center space-y-4">
           <SignInUser />
@@ -243,28 +223,13 @@ const ImageCropUploader = () => {
         }
       `}</style>
 
-      {/* 3D Canvas */}
       <div className='m-12 ml-0' style={{ width: '70vw', height: '54vh' }}>
-        <Canvas
-          camera={{ position: [100, 2, 100], fov: 50, near: 0.1, far: 1000 }}
-          style={{ width: '100%', height: '100%' }}
-        >
+        <Canvas camera={{ position: [100, 2, 100], fov: 50, near: 0.1, far: 1000 }} style={{ width: '100%', height: '100%' }}>
           <ambientLight intensity={0.4} />
           <directionalLight position={[5, 5, 5]} intensity={4.2} castShadow />
           <directionalLight position={[18, -8, -9]} intensity={2.8} />
-          <spotLight
-            position={[0, -2, 0]}
-            angle={0.5}
-            penumbra={1}
-            intensity={1.4}
-            color="#ffffff"
-            castShadow
-          />
-<Deer
-  position={[0, 0, 0]}
-  scale={0.28}
-  modelPath="/models/deer/scene.gltf"
-/>
+          <spotLight position={[0, -2, 0]} angle={0.5} penumbra={1} intensity={1.4} color="#ffffff" castShadow />
+          <Deer position={[0, 0, 0]} scale={0.28} modelPath="/models/deer/scene.gltf" />
           <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} target={[0, 0, 0]} />
         </Canvas>
       </div>

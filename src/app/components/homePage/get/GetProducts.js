@@ -45,10 +45,10 @@ export default function GetProducts() {
         const res = await fetch('api/products');
         const json = await res.json();
         if (json.data) {
-          setProducts(json.data.slice(0, 4)); // <-- only take first 4
+          setProducts(json.data.slice(0, 4));
         } else {
           console.warn('No data returned, using mock products');
-          setProducts(mockProducts.slice(0, 4)); // <-- first 4 mock products
+          setProducts(mockProducts.slice(0, 4));
         }
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -77,7 +77,7 @@ export default function GetProducts() {
         </div>
       </div>
 
-      <div className="grid justify-center grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(200px,0.4fr))] gap-x-2 sm:gap-x-6 gap-y-10 px-4">
+      <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-2 sm:gap-x-6 gap-y-10 px-4">
         {loading
           ? placeholderCards
           : products.map((product, index) => (

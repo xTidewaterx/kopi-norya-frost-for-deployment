@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import "@fortawesome/fontawesome-free/css/all.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -11,12 +11,11 @@ export default function Navbar() {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
   const [isOpen, setIsOpen] = useState(false);
-
   const [showNorya, setShowNorya] = useState(!isHomePage);
   const [logoSize, setLogoSize] = useState(36);
   const [textPaddingRight, setTextPaddingRight] = useState(8);
-  const [showNavbar, setShowNavbar] = useState(true);
-  const [lastScroll, setLastScroll] = useState(0);
+  const [atTop, setAtTop] = useState(true);
+  const prevAtTop = useRef(true);
 
   useEffect(() => {
     const updateSizes = () => {
@@ -43,7 +42,7 @@ export default function Navbar() {
       setShowNorya(false);
       const timer = setTimeout(() => {
         setShowNorya(true);
-      }, 3200); // ⏱️ Matches MainBanner disappearance
+      }, 3200);
       return () => clearTimeout(timer);
     } else {
       setShowNorya(true);
@@ -52,38 +51,32 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScroll = window.scrollY;
-      if (currentScroll <= 0) {
-        setShowNavbar(true);
-      } else if (currentScroll > lastScroll) {
-        setShowNavbar(false);
-      } else {
-        setShowNavbar(true);
+      const scrollY = window.scrollY;
+      const isNowAtTop = scrollY === 0;
+
+      if (prevAtTop.current !== isNowAtTop) {
+        console.log(isNowAtTop ? "Scrolled to top" : "Scrolled away from top");
+        setAtTop(isNowAtTop);
+        prevAtTop.current = isNowAtTop;
       }
-      setLastScroll(currentScroll);
     };
 
     window.addEventListener("scroll", handleScroll);
+    handleScroll(); // run once on mount
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScroll]);
+  }, []);
+
+  if (!atTop) return null;
 
   return (
-    <nav
-      className={`fixed top-0 left-0 w-full z-50 text-white bg-transparent pt-4 transition-transform duration-300 ${
-        showNavbar ? "translate-y-0" : "-translate-y-full"
-      }`}
-    >
+    <nav className="w-full z-50 text-white bg-transparent pt-4 absolute top-0 left-0">
       <div className="max-w-9xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-16">
           {/* Logo + NORYA */}
-          <Link
-            href="/"
-            className="group relative flex items-center m-0 transition-all"
-          >
-            <span className="absolute inset-0 bg-yellow-400 rounded-full opacity-0 transition-all duration-300 group-hover:opacity-100 -z-10"></span>
-
+          <Link href="/" className="group relative flex items-center m-0">
+            <span className="absolute left-0 top-0 h-full w-full bg-yellow-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:w-[130%] transition-[opacity,width] duration-300 ease-out -z-10" />
             <div
-              className="relative flex items-center justify-center z-10 transition-all duration-300 group-hover:pl-2 group-hover:pr-2 group-hover:pt-1 group-hover:pb-1"
+              className="relative flex items-center justify-center z-10"
               style={{
                 width: `${logoSize}px`,
                 height: `${logoSize}px`,
@@ -96,11 +89,10 @@ export default function Navbar() {
                 alt="NORYA Logo"
               />
             </div>
-
             <span
               id="navbarTextTarget"
-              className={`text-2xl pl-2 font tracking-tight z-10 transition-[opacity,transform] duration-[1400ms] ease-in-out group-hover:pl-4 group-hover:pr-4 group-hover:pt-1 group-hover:pb-1 ${
-                showNorya ? "opacity-100 scale-100" : "opacity-0 scale-95"
+              className={`text-2xl pl-2 font tracking-tight z-10 transition-opacity duration-[1400ms] ease-in-out ${
+                showNorya ? "opacity-100" : "opacity-0 pr-6"
               }`}
               style={{
                 lineHeight: `${logoSize}px`,
@@ -135,7 +127,7 @@ export default function Navbar() {
           </button>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center space-x-6 h-full m-0">
+          <div className="hidden md:flex items-center space-x-6 h-full m-0 flex-nowrap">
             {[
               { href: "/sellers", label: "Selgere" },
               { href: "/products", label: "Produkter" },
@@ -145,7 +137,7 @@ export default function Navbar() {
               <div className="hover:text-black" key={item.label}>
                 <Link
                   href={item.href}
-                  className={`px-4 py-1 hover:text-black transition-all text-white rounded-full hover:bg-yellow-400 ${item.extra || ""}`}
+                  className={`whitespace-nowrap px-4 py-1 hover:text-black transition-all text-white rounded-full hover:bg-yellow-400 ${item.extra || ""}`}
                 >
                   {item.label}
                 </Link>
@@ -175,12 +167,20 @@ export default function Navbar() {
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
-        <div className={`flex flex-col items-center justify-center mt-12 mb-16 transition-all duration-500 ${isOpen ? "opacity-100" : "opacity-0"}`}>
+        <div
+          className={`flex flex-col items-center justify-center mt-12 mb-16 transition-all duration-500 ${
+            isOpen ? "opacity-100" : "opacity-0"
+          }`}
+        >
           <img className="w-12 h-12 mb-6" src="/NORYA-logo.png" alt="NORYA Logo" />
           <span className="text-3xl font-semibold tracking-tight">NORYA</span>
         </div>
 
-        <div className={`flex flex-col space-y-4 text-center transition-all duration-500 ${isOpen ? "opacity-100" : "opacity-0"}`}>
+        <div
+          className={`flex flex-col space-y-4 text-center transition-all duration-500 ${
+            isOpen ? "opacity-100" : "opacity-0"
+          }`}
+        >
           {[
             { href: "/sellers", label: "Selgere" },
             { href: "/products", label: "Produkter" },
