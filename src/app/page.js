@@ -14,6 +14,7 @@ import UserRow2 from './components/UserRow2';
 import UserRow from './components/UserRow';
 import createPublicUserDoc from './components/SyncUsersButton';
 import SyncUsersButton from './components/SyncUsersButton';
+import TestScroll from './testScroll';
 
 export default function Home() {
   return (
@@ -29,6 +30,7 @@ export default function Home() {
       <HeroBanner />
       -
       <UserRow />
+
 
 
     </AuthProvider>

@@ -24,6 +24,7 @@ const ImageCropUploader = () => {
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState(false);
   const [showHalo, setShowHalo] = useState(false);
+  const [showNewProduct, setShowNewProduct] = useState(false);
 
   const auth = getAuth();
   const db = getFirestore();
@@ -73,7 +74,6 @@ const ImageCropUploader = () => {
     let downloadURL = profilePic;
 
     try {
-      // Only upload if user selected and cropped a new image
       if (imageSrc && croppedAreaPixels) {
         const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
         const storageRef = ref(storage, `profilePics/${user.uid}.jpg`);
@@ -81,13 +81,11 @@ const ImageCropUploader = () => {
         downloadURL = await getDownloadURL(storageRef);
       }
 
-      // Update Firebase Auth profile
       await updateProfile(user, {
         displayName: newName || user.displayName,
         photoURL: downloadURL,
       });
 
-      // Update Firestore documents
       const userDocRef = doc(db, 'users', user.uid);
       const publicUserDocRef = doc(db, 'publicUsers', user.uid);
 
@@ -104,10 +102,32 @@ const ImageCropUploader = () => {
     }
   };
 
-  const UploadProductIfSignedIn = () => user?.uid ? <PostProduct /> : null;
+  const UploadProductIfSignedIn = () =>
+    user?.uid ? (
+      <>
+        {!showNewProduct ? (
+          <button
+            onClick={() => setShowNewProduct(true)}
+            className="w-full max-w-lg py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium shadow transition"
+          >
+            Nytt Produkt
+          </button>
+        ) : (
+          <div className="w-full max-w-2xl bg-white shadow-xl rounded-3xl p-6">
+            <PostProduct />
+            <button
+              onClick={() => setShowNewProduct(false)}
+              className="mt-4 w-full py-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 shadow transition"
+            >
+              Lukk
+            </button>
+          </div>
+        )}
+      </>
+    ) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center px-4 py-10 space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col justify-center items-center px-4 py-6 space-y-8 pt-48">
       <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-lg space-y-6">
         {!editing ? (
           <>
@@ -132,7 +152,10 @@ const ImageCropUploader = () => {
                 Edit Profile
               </button>
               <button
-                onClick={async () => { await auth.signOut(); alert('You have been signed out.'); }}
+                onClick={async () => {
+                  await auth.signOut();
+                  alert('You have been signed out.');
+                }}
                 className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium shadow transition"
               >
                 Sign Out
@@ -223,7 +246,7 @@ const ImageCropUploader = () => {
         }
       `}</style>
 
-      <div className='m-12 ml-0' style={{ width: '70vw', height: '54vh' }}>
+      <div className="m-12 ml-0" style={{ width: '70vw', height: '54vh' }}>
         <Canvas camera={{ position: [100, 2, 100], fov: 50, near: 0.1, far: 1000 }} style={{ width: '100%', height: '100%' }}>
           <ambientLight intensity={0.4} />
           <directionalLight position={[5, 5, 5]} intensity={4.2} castShadow />

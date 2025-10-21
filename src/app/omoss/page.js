@@ -1,12 +1,20 @@
-
-
 export default function OmOssPage() {
   return (
     <div className="pb-0">
       {/* Main Content */}
       <div className="py-12 pb-12">
         {/* NORYA Heading */}
-        <h1 className="font-bold text-slate-900 mb-12 tracking-tight font-poppins text-[150px] lg:text-[220px] xl:text-[280px] 2xl:text-[320px] leading-none text-center px-[10vw]">
+        <h1
+          className="
+            font-bold text-slate-900 mb-12 tracking-tight font-poppins 
+            text-[16vw] sm:text-[100px] md:text-[150px] lg:text-[220px] xl:text-[280px] 2xl:text-[320px]
+            leading-none text-center px-[10vw]
+          "
+          style={{
+            wordBreak: "break-word",
+            lineHeight: "1",
+          }}
+        >
           NORYA
         </h1>
 
@@ -54,11 +62,10 @@ export default function OmOssPage() {
             NORYA er et kreativt fellesskap dedikert til å styrke skapere i Nord-Norge. En kuratert, digital markedsplass hvor vi tror på samarbeid, historiefortelling, og digitale verktøy som bringer mennesker i nord sammen.
           </p>
           <p className="text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-slate-700 leading-relaxed font-poppins">
-            Vårt mål er å bygge broer mellom kunst, teknologi og lokalsamfunn. Hver skapende stemme i Nord-Norge fortjener en vakker plattform av internasjonal kvalitet — med solide, trygge norske løsninger som treffer målgruppen vår. Det ønsker vi å være.
+            Vårt mål er å bygge broer mellom kunst, teknologi og lokalsamfunn. Hver skapende stemme i Nord-Norge fortjener en vakker plattform/luksuskatalog av internasjonal kvalitet — med solide, trygge norske løsninger som treffer målgruppen vår. Derfor skapte vi NORYA.
           </p>
         </div>
       </div>
-
     </div>
   );
 }
