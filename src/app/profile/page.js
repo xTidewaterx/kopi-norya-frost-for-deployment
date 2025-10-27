@@ -256,6 +256,8 @@ const ImageCropUploader = () => {
           <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} target={[0, 0, 0]} />
         </Canvas>
       </div>
+
+    
     </div>
   );
 };

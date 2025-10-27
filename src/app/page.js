@@ -15,6 +15,10 @@ import UserRow from './components/UserRow';
 import createPublicUserDoc from './components/SyncUsersButton';
 import SyncUsersButton from './components/SyncUsersButton';
 import TestScroll from './testScroll';
+import CreateShipmentButton from './components/homePage/atoms/CreateShipmentButton';
+
+
+
 
 export default function Home() {
   return (
@@ -28,10 +32,10 @@ export default function Home() {
       {/* Placeholder for your future chat system */}
       {/* You can conditionally render chat components here based on user state */}
       <HeroBanner />
-      -
+      
       <UserRow />
 
-
+<CreateShipmentButton />
 
     </AuthProvider>
   );
