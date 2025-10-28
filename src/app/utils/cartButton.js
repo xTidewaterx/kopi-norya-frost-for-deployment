@@ -31,10 +31,11 @@ useEffect(() => {
 
   return (
     <button
-      className="mt-6 px-6 py-2 bg-gray-900 text-white text-lg font-semibold rounded-lg hover:bg-gray-700 transition duration-300"
+    
+      className="block text-center w-full px-6 py-2 border bg-blue-200  border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-100 transition-all duration-200"
       onClick={() => {AddProduct()}}
     >
-      Add to Cart
+   Legg i handlekurv
     </button>
   );
 }

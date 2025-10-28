@@ -235,7 +235,7 @@ export default function PostProduct(productValue) {
         className="max-w-3xl w-full mx-auto bg-white p-8 rounded-xl shadow-md"
       >
         <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-          {productValue?.currentProduct ? "Edit Product" : "Add New Product"}
+          {productValue?.currentProduct ? "Rediger produkt" : "Legg til nytt produkt"}
         </h2>
 
         <div className="space-y-6">

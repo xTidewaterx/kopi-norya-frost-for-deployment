@@ -26,6 +26,10 @@ const ImageCropUploader = () => {
   const [showHalo, setShowHalo] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
 
+  // 🆕 Added state for products
+  const [creatorProducts, setCreatorProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
   const auth = getAuth();
   const db = getFirestore();
   const storage = getStorage();
@@ -125,6 +129,35 @@ const ImageCropUploader = () => {
         )}
       </>
     ) : null;
+
+  // 🆕 Fetch products and filter by signed-in user's creatorId
+  useEffect(() => {
+    async function fetchProducts() {
+      if (!user?.uid) return;
+      try {
+        console.log('attempting to fetch products from Next.js API route...');
+        const res = await fetch('/api/products');
+        const json = await res.json();
+
+        if (json.data) {
+          const filtered = json.data.filter(
+            (product) => product.metadata?.creatorId === user.uid
+          );
+          setCreatorProducts(filtered);
+        } else {
+          console.warn('No data returned from API.');
+          setCreatorProducts([]);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setCreatorProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    }
+
+    fetchProducts();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col justify-center items-center px-4 py-6 space-y-8 pt-48">
@@ -231,6 +264,37 @@ const ImageCropUploader = () => {
 
       <UploadProductIfSignedIn />
 
+      {/* 🆕 Display creator's products */}
+      {user && (
+        <div className="w-full max-w-5xl mt-12">
+          <h2 className="text-2xl font-semibold text-blue-800 mb-6 text-center">Dine produkter</h2>
+          {loadingProducts ? (
+            <p className="text-center text-gray-600">Laster produkter...</p>
+          ) : creatorProducts.length === 0 ? (
+            <p className="text-center text-gray-600">Ingen produkter funnet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {creatorProducts.map((product) => (
+                <div key={product.id} className="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden">
+                  <img
+                    src={product.images?.[0] || '/placeholder.jpg'}
+                    alt={product.name}
+                    className="w-full h-56 object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
+                    <p className="text-gray-600">{product.description}</p>
+                    <p className="text-blue-700 font-bold mt-2">
+                      {product.currency?.toUpperCase()} {product.price?.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <style jsx>{`
         @keyframes glow {
           0% { transform: scale(0.8); box-shadow: 0 0 0px rgba(255, 215, 0, 0); opacity: 0; }
@@ -256,8 +320,6 @@ const ImageCropUploader = () => {
           <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} target={[0, 0, 0]} />
         </Canvas>
       </div>
-
-    
     </div>
   );
 };
