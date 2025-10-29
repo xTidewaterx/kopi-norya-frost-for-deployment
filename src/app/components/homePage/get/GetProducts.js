@@ -38,28 +38,43 @@ export default function GetProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        console.log('attempting to fetch products from Next.js API route...');
-        const res = await fetch('api/products');
-        const json = await res.json();
-        if (json.data) {
-          setProducts(json.data.slice(0, 4));
-        } else {
-          console.warn('No data returned, using mock products');
-          setProducts(mockProducts.slice(0, 4));
-        }
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts(mockProducts.slice(0, 4));
-      } finally {
-        setLoading(false);
-      }
-    }
+console.log('GetProducts component rendered');
+  
 
-    fetchProducts();
-  }, []);
+useEffect(() => {
+  async function fetchProducts() {
+    console.log('GetProducts useEffect running...');
+    try {
+      const res = await fetch('/api/products'); // ensure leading slash
+      const json = await res.json();
+      console.log('Fetched products:', json);
+
+      // Always take at least 4 products, even if price is missing
+      if (json.data && json.data.length > 0) {
+        const safeProducts = json.data.map(p => ({
+          id: p.id,
+          name: p.name || 'Unnamed product',
+          images: p.images?.length ? p.images : ['/fallback.jpg'],
+          price: p.price ?? 0, // fallback price
+          currency: p.currency ?? 'NOK', // fallback currency
+        }));
+
+        setProducts(safeProducts.slice(0, 4));
+      } else {
+        console.warn('No products returned, using mock products');
+        setProducts(mockProducts.slice(0, 4));
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setProducts(mockProducts.slice(0, 4));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchProducts();
+}, []);
+
 
   const placeholderCards = Array.from({ length: 4 }).map((_, idx) => (
     <div

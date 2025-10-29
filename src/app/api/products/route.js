@@ -14,28 +14,47 @@ export async function GET(req) {
     // If product ID is provided, return that single product
     if (id) {
       const product = await stripe.products.retrieve(id);
-      const price = await stripe.prices.retrieve(product.default_price);
+      let price = 0;
+      let currency = 'nok';
+
+      if (product.default_price) {
+        try {
+          const priceData = await stripe.prices.retrieve(product.default_price);
+          price = priceData.unit_amount / 100;
+          currency = priceData.currency || 'nok';
+        } catch (err) {
+          console.warn(`Failed to retrieve price for product ${product.id}`, err);
+        }
+      }
 
       return NextResponse.json({
         id: product.id,
         name: product.name,
         description: product.description,
         images: product.images,
-        price: price.unit_amount / 100,
-        currency: price.currency,
+        price,
+        currency,
         metadata: product.metadata,
       });
     }
 
+    // Fetch all products
     console.log("Fetching all Stripe products...");
-    const products = await stripe.products.list({ limit: 6 });
+    const products = await stripe.products.list({ limit: 50 });
 
     const productsWithPrices = await Promise.all(
       products.data.map(async (product) => {
-        let price = null;
+        let price = 0;
+        let currency = 'nok'; // default currency
+
         if (product.default_price) {
-          const priceData = await stripe.prices.retrieve(product.default_price);
-          price = priceData.unit_amount / 100;
+          try {
+            const priceData = await stripe.prices.retrieve(product.default_price);
+            price = priceData.unit_amount / 100;
+            currency = priceData.currency || 'nok';
+          } catch (err) {
+            console.warn(`Failed to retrieve price for product ${product.id}`, err);
+          }
         }
 
         return {
@@ -44,10 +63,15 @@ export async function GET(req) {
           description: product.description,
           images: product.images,
           price,
-          currency: product.default_price ? "usd" : null,
+          currency,
           metadata: product.metadata,
         };
       })
+    );
+
+    console.log(
+      `Fetched ${productsWithPrices.length} products:`,
+      productsWithPrices.map(p => ({ id: p.id, price: p.price, currency: p.currency }))
     );
 
     return NextResponse.json({ data: productsWithPrices });
@@ -73,22 +97,19 @@ export async function POST(req) {
 
     console.log("Creating new Stripe product:", { name, description, price, images, metadata });
 
-    // Step 1: Create Product in Stripe
     const product = await stripe.products.create({
       name,
       description: description || "",
       images: images || [],
-      metadata: metadata || {}, // optional creator data
+      metadata: metadata || {},
     });
 
-    // Step 2: Create Price for Product
     const priceData = await stripe.prices.create({
       unit_amount: Math.round(Number(price)),
-      currency: "usd",
+      currency: "nok", // default to NOK for new products
       product: product.id,
     });
 
-    // Step 3: Update Product to set Default Price
     const updatedProduct = await stripe.products.update(product.id, {
       default_price: priceData.id,
     });
@@ -118,11 +139,9 @@ export async function PATCH(req) {
     }
 
     const updatedFields = {};
-
     if (images) updatedFields.images = images;
     if (metadata) updatedFields.metadata = metadata;
 
-    // Optional: Update Price if provided
     let newPriceData = null;
     if (price) {
       const parsedPrice = Math.round(Number(price));
@@ -135,14 +154,13 @@ export async function PATCH(req) {
 
       newPriceData = await stripe.prices.create({
         unit_amount: parsedPrice,
-        currency: "nok",
+        currency: "nok", // default to NOK
         product: id,
       });
 
       updatedFields.default_price = newPriceData.id;
     }
 
-    // Update Product
     const updatedProduct = await stripe.products.update(id, updatedFields);
     console.log("✅ Product updated:", updatedProduct.id);
 
