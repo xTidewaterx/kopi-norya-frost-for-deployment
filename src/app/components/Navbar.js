@@ -153,7 +153,7 @@ export default function Navbar() {
 
             <Link
               href="/profile"
-              className="group hover:bg-blue-600 rounded-full px-4 py-1 transition-all"
+              className="group hover:bg-yellow-400 rounded-full px-4 py-1 transition-all"
             >
               <FontAwesomeIcon className="group-hover:invert text-white" icon={faUser} />
             </Link>

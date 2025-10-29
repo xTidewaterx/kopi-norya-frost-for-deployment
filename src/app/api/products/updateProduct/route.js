@@ -42,7 +42,7 @@ export async function POST(req) {
       console.log("💰 Creating new Stripe price for product:", id);
       newPriceData = await stripe.prices.create({
         unit_amount: parsedPrice,
-        currency: "usd",
+        currency: "nok",
         product: id,
       });
 
