@@ -40,7 +40,7 @@ export async function GET(req) {
 
     // Fetch all products
     console.log("Fetching all Stripe products...");
-    const products = await stripe.products.list({ limit: 50 });
+    const products = await stripe.products.list({ limit: 6 });
 
     const productsWithPrices = await Promise.all(
       products.data.map(async (product) => {

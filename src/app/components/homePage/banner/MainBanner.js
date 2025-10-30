@@ -180,7 +180,7 @@ export default function MainBanner() {
           ref={revealRef}
           className={`${poppins.className} text-center p-4 z-20 max-w-[90%] sm:max-w-[70%] relative -translate-y-6 sm:-translate-y-12 font-medium tracking-[0.05em]`}
           style={{
-            color: "#cfbe20ff",
+            color: "#ffe604ff",
             fontSize: fontStyle.fontSize,
             lineHeight: fontStyle.lineHeight,
             whiteSpace: "nowrap",

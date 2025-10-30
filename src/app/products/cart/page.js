@@ -64,11 +64,9 @@ export default function CartPage() {
   const [clientSecret, setClientSecret] = useState(null);
   const [loadingSecret, setLoadingSecret] = useState(false);
 
-  // New state for shipping
   const [shippingOption, setShippingOption] = useState({ id: 'standard', name: 'Standard shipping (2-4 days)', cost: 500 });
 
   useEffect(() => setIsClient(true), []);
-
   if (!isClient) return null;
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -79,7 +77,6 @@ export default function CartPage() {
 
     setLoadingSecret(true);
     try {
-      // Include shipping info in POST body
       const lineItems = items.map(item => ({
         name: item.name,
         price: Math.round(item.price),
@@ -108,148 +105,163 @@ export default function CartPage() {
     setLoadingSecret(false);
   };
 
+  // 3D perspective for thick object feel
+  const containerStyle = {
+    perspective: 2000,
+    transformStyle: "preserve-3d",
+    width: "100%",
+  };
+
+  const cardTransition = { duration: 0.4, ease: "easeInOut" };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex justify-center items-center px-6 py-10">
-      <AnimatePresence mode="wait">
-        {!showCheckout ? (
-          <motion.div
-            key="cart"
-            initial={{ rotateY: 0, opacity: 1 }}
-            exit={{ rotateY: 90, opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="grid md:grid-cols-2 w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden"
-          >
-            {/* Left column – products */}
-            <div className="p-8 md:p-10">
-              <h1 className="text-3xl font-semibold text-blue-950 mb-8 text-center tracking-wide">
-                Handlekurv
-              </h1>
+      <div style={containerStyle}>
+        <AnimatePresence mode="wait">
+          {!showCheckout ? (
+            <motion.div
+              key="cart"
+              initial={{ rotateY: 0, scale: 1, rotateX: 0 }}
+              animate={{ rotateY: 0, scale: 1, rotateX: 0 }}
+              exit={{
+                rotateY: 180,
+                rotateX: 5, // subtle top tilt
+                scale: 0.97,
+                opacity: 0.95,
+              }}
+              transition={cardTransition}
+              className="grid md:grid-cols-2 w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+              style={{ backfaceVisibility: "hidden", transformOrigin: "center" }}
+            >
+              {/* Left column – products */}
+              <div className="p-8 md:p-10">
+                <h1 className="text-3xl font-semibold text-blue-950 mb-8 text-center tracking-wide">
+                  Handlekurv
+                </h1>
 
-              {items.length === 0 ? (
-                <p className="text-center text-blue-800">Handlekurven er tom.</p>
-              ) : (
-                <div className="space-y-8">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between border-b border-blue-200 pb-5">
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src={item.images?.[0] || "/placeholder.png"}
-                          alt={item.name}
-                          className="w-20 h-20 object-cover rounded-xl border border-blue-200 shadow-sm"
-                        />
-                        <div>
-                          <p className="font-medium text-blue-950 text-lg">{item.name}</p>
-                          {item.artist && (
-                            <p className="text-blue-700 text-sm font-light">av {item.artist}</p>
-                          )}
-                          <p className="text-blue-800 text-sm font-semibold mt-1">
-                            ${(item.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </p>
+                {items.length === 0 ? (
+                  <p className="text-center text-blue-800">Handlekurven er tom.</p>
+                ) : (
+                  <div className="space-y-8">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between border-b border-blue-200 pb-5">
+                        <div className="flex items-center space-x-4">
+                          <img
+                            src={item.images?.[0] || "/placeholder.png"}
+                            alt={item.name}
+                            className="w-20 h-20 object-cover rounded-xl border border-blue-200 shadow-sm"
+                          />
+                          <div>
+                            <p className="font-medium text-blue-950 text-lg">{item.name}</p>
+                            {item.artist && (
+                              <p className="text-blue-700 text-sm font-light">av {item.artist}</p>
+                            )}
+                            <p className="text-blue-800 text-sm font-semibold mt-1">
+                              {(item.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <button onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
+                                  className="px-3 py-1 bg-blue-100 text-blue-900 rounded-md hover:bg-blue-200 transition">−</button>
+                          <span className="font-semibold text-blue-900">{item.quantity}</span>
+                          <button onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                                  className="px-3 py-1 bg-blue-100 text-blue-900 rounded-md hover:bg-blue-200 transition">+</button>
+                          <button onClick={() => removeItem(item.id)}
+                                  className="px-4 py-1 text-sm bg-yellow-400 text-blue-950 font-medium rounded-md hover:bg-yellow-300 transition">
+                            Fjern
+                          </button>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                      <div className="flex items-center space-x-3">
-                        <button onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
-                                className="px-3 py-1 bg-blue-100 text-blue-900 rounded-md hover:bg-blue-200 transition">−</button>
-                        <span className="font-semibold text-blue-900">{item.quantity}</span>
-                        <button onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                                className="px-3 py-1 bg-blue-100 text-blue-900 rounded-md hover:bg-blue-200 transition">+</button>
-                        <button onClick={() => removeItem(item.id)}
-                                className="px-4 py-1 text-sm bg-yellow-400 text-blue-950 font-medium rounded-md hover:bg-yellow-300 transition">
-                          Fjern
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+              {/* Right column – summary */}
+              <div className="bg-blue-400 text-blue-50 p-8 md:p-10 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Oppsummering</h2>
+                  <div className="mb-4">
+                    <p className="text-blue-100 mb-2 font-medium">Velg frakt</p>
+                    <select
+                      value={shippingOption.id}
+                      onChange={(e) => {
+                        const option = shippingOptions.find(opt => opt.id === e.target.value);
+                        setShippingOption(option);
+                      }}
+                      className="w-full px-4 py-2 rounded-lg border border-blue-700 bg-blue-800 text-blue-50"
+                    >
+                      <option value="standard">Standard shipping (2-4 days) – 50,00 NOK</option>
+                      <option value="express">Express shipping (1-2 days) – 100,00 NOK</option>
+                    </select>
+                  </div>
+
+                  <div className="flex justify-between text-lg font-medium border-t border-blue-700 pt-4">
+                    <span>Subtotal:</span>
+                    <span className="text-yellow-400">
+                      {(subtotal / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-lg font-medium mt-2">
+                    <span>Frakt:</span>
+                    <span className="text-yellow-400">
+                      {(shippingOption.cost / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-lg font-semibold mt-2 border-t border-blue-700 pt-2">
+                    <span>Total:</span>
+                    <span className="text-yellow-400">
+                      {(totalSum / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Right column – summary */}
-            <div className="bg-blue-400 text-blue-50 p-8 md:p-10 flex flex-col justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold mb-4">Oppsummering</h2>
-
-                {/* Shipping options */}
-                <div className="mb-4">
-                  <p className="text-blue-100 mb-2 font-medium">Velg frakt</p>
-                  <select
-                    value={shippingOption.id}
-                    onChange={(e) => {
-                      const option = shippingOptions.find(opt => opt.id === e.target.value);
-                      setShippingOption(option);
-                    }}
-                    className="w-full px-4 py-2 rounded-lg border border-blue-700 bg-blue-800 text-blue-50"
+                <div className="mt-10 space-y-4">
+                  <button
+                    onClick={handleCheckout}
+                    disabled={loadingSecret}
+                    className="w-full bg-yellow-400 text-blue-950 font-semibold py-3 rounded-lg hover:bg-yellow-300 transition shadow-md"
                   >
-                    <option value="standard">Standard shipping (2-4 days) – 50,00 NOK</option>
-                    <option value="express">Express shipping (1-2 days) – 100,00 NOK</option>
-                  </select>
+                    {loadingSecret ? "Preparing…" : "Gå til kassen"}
+                  </button>
+                  <button
+                    onClick={emptyCart}
+                    className="w-full bg-blue-800 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Tøm handlekurv
+                  </button>
                 </div>
-
-                <div className="flex justify-between text-lg font-medium border-t border-blue-700 pt-4">
-                  <span>Subtotal:</span>
-                  <span className="text-yellow-400">
-                    ${(subtotal / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between text-lg font-medium mt-2">
-                  <span>Frakt:</span>
-                  <span className="text-yellow-400">
-                    ${(shippingOption.cost / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between text-lg font-semibold mt-2 border-t border-blue-700 pt-2">
-                  <span>Total:</span>
-                  <span className="text-yellow-400">
-                    ${(totalSum / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-
               </div>
-
-              <div className="mt-10 space-y-4">
-                <button
-                  onClick={handleCheckout}
-                  disabled={loadingSecret}
-                  className="w-full bg-yellow-400 text-blue-950 font-semibold py-3 rounded-lg hover:bg-yellow-300 transition shadow-md"
-                >
-                  {loadingSecret ? "Preparing…" : "Gå til kassen"}
-                </button>
-                <button
-                  onClick={emptyCart}
-                  className="w-full bg-blue-800 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-                >
-                  Tøm handlekurv
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="checkout"
-            initial={{ rotateY: -90, opacity: 0 }}
-            animate={{ rotateY: 0, opacity: 1 }}
-            exit={{ rotateY: 90, opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl p-10 flex flex-col items-center justify-center"
-          >
-            <h2 className="text-2xl font-semibold text-blue-950 mb-6">Fullfør betaling</h2>
-
-            {clientSecret ? (
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <CheckoutForm onBack={() => setShowCheckout(false)} />
-              </Elements>
-            ) : (
-              <p className="text-gray-600">Preparing checkout…</p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="checkout"
+              initial={{ rotateY: -180, rotateX: -5, scale: 0.97, opacity: 0.95 }}
+              animate={{ rotateY: 0, rotateX: 0, scale: 1, opacity: 1 }}
+              exit={{ rotateY: 180, rotateX: 5, scale: 0.97, opacity: 0.95 }}
+              transition={cardTransition}
+              className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl p-10 flex flex-col items-center justify-center"
+              style={{ backfaceVisibility: "hidden", transformOrigin: "center" }}
+            >
+              <h2 className="text-2xl font-semibold text-blue-950 mb-6">Fullfør betaling</h2>
+              {clientSecret ? (
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <CheckoutForm onBack={() => setShowCheckout(false)} />
+                </Elements>
+              ) : (
+                <p className="text-gray-600">Preparing checkout…</p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
 
-// Shipping options list
+// Shipping options
 const shippingOptions = [
   { id: "standard", name: "Standard shipping (2-4 days)", cost: 500 },
   { id: "express", name: "Express shipping (1-2 days)", cost: 1000 },
