@@ -8,7 +8,10 @@ import { getAuth, updateProfile } from 'firebase/auth';
 import { getCroppedImg } from '../utils/cropImage';
 import { useAuth } from '../auth/authContext';
 import { GoogleSignIn } from '../auth/GoogleSignIn';
-import { RegisterUser } from '../auth/Register';
+import { RegisterUser } from "../auth/RegisterUser";
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import Deer from '../components/Deer';
 import { SignInUser } from '../auth/SignIn';
 import PostProduct from '../post/PostProduct';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
@@ -21,22 +24,27 @@ const ImageCropUploader = () => {
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState(false);
   const [showHalo, setShowHalo] = useState(false);
+  const [showNewProduct, setShowNewProduct] = useState(false);
+
+  // 🆕 Added state for products
+  const [creatorProducts, setCreatorProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   const auth = getAuth();
   const db = getFirestore();
+  const storage = getStorage();
   const user = auth.currentUser;
   const { user: contextUser } = useAuth();
 
-  const effectiveName = user?.displayName || contextUser?.fullName || user?.email || 'Your Profile';
-  const profilePic = user?.photoURL;
+  const effectiveName = user?.displayName || contextUser?.fullName || user?.email || 'No Name';
+  const profilePic = user?.photoURL || '';
 
-  // 🔹 REFRESH USER INFO ON MOUNT
   useEffect(() => {
     const reloadUser = async () => {
       const current = auth.currentUser;
       if (current) {
         try {
-          await current.reload(); // refresh token and profile info
+          await current.reload();
         } catch (err) {
           console.error('Failed to reload user:', err);
         }
@@ -69,22 +77,19 @@ const ImageCropUploader = () => {
 
     let downloadURL = profilePic;
 
-    if (imageSrc && croppedAreaPixels) {
-      const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
-      const storage = getStorage();
-      const storageRef = ref(storage, `profilePics/${user.uid}.jpg`);
-      await uploadBytes(storageRef, blob);
-      downloadURL = await getDownloadURL(storageRef);
-    }
-
-    // Update Auth profile
-    await updateProfile(user, {
-      displayName: newName || user.displayName,
-      photoURL: downloadURL,
-    });
-
-    // Update Firestore
     try {
+      if (imageSrc && croppedAreaPixels) {
+        const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
+        const storageRef = ref(storage, `profilePics/${user.uid}.jpg`);
+        await uploadBytes(storageRef, blob);
+        downloadURL = await getDownloadURL(storageRef);
+      }
+
+      await updateProfile(user, {
+        displayName: newName || user.displayName,
+        photoURL: downloadURL,
+      });
+
       const userDocRef = doc(db, 'users', user.uid);
       const publicUserDocRef = doc(db, 'publicUsers', user.uid);
 
@@ -94,21 +99,68 @@ const ImageCropUploader = () => {
       ]);
 
       alert('Profile updated successfully!');
+      setEditing(false);
     } catch (error) {
-      console.error('Error updating Firestore documents:', error);
-      alert('Profile updated in auth, but failed to update Firestore.');
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile.');
+    }
+  };
+
+  const UploadProductIfSignedIn = () =>
+    user?.uid ? (
+      <>
+        {!showNewProduct ? (
+          <button
+            onClick={() => setShowNewProduct(true)}
+            className="w-full max-w-lg py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium shadow transition"
+          >
+            Nytt Produkt
+          </button>
+        ) : (
+          <div className="w-full max-w-2xl bg-white shadow-xl rounded-3xl p-6">
+            <PostProduct />
+            <button
+              onClick={() => setShowNewProduct(false)}
+              className="mt-4 w-full py-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 shadow transition"
+            >
+              Lukk
+            </button>
+          </div>
+        )}
+      </>
+    ) : null;
+
+  // 🆕 Fetch products and filter by signed-in user's creatorId
+  useEffect(() => {
+    async function fetchProducts() {
+      if (!user?.uid) return;
+      try {
+        console.log('attempting to fetch products from Next.js API route...');
+        const res = await fetch('/api/products');
+        const json = await res.json();
+
+        if (json.data) {
+          const filtered = json.data.filter(
+            (product) => product.metadata?.creatorId === user.uid
+          );
+          setCreatorProducts(filtered);
+        } else {
+          console.warn('No data returned from API.');
+          setCreatorProducts([]);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setCreatorProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
     }
 
-    setEditing(false);
-  };
-
-  const UploadProductIfSignedIn = () => {
-    if (user?.uid) return <PostProduct />;
-    return null;
-  };
+    fetchProducts();
+  }, [user]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center px-4 py-10 space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col justify-center items-center px-4 py-6 space-y-8 pt-48">
       <div className="bg-white shadow-xl rounded-3xl p-8 w-full max-w-lg space-y-6">
         {!editing ? (
           <>
@@ -122,38 +174,26 @@ const ImageCropUploader = () => {
                 />
               </div>
             )}
-
-            {user && (
-              <h1 className="text-center text-2xl font-light text-blue-800">
-                Welcome, <span className="font-semibold">{effectiveName}</span>
-              </h1>
-            )}
-
-            {user ? (
-              <div className="space-y-3">
-                <button
-                  onClick={() => setEditing(true)}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow transition"
-                >
-                  Edit Profile
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      await auth.signOut();
-                      alert('You have been signed out.');
-                    } catch (error) {
-                      console.error('Sign out failed:', error);
-                    }
-                  }}
-                  className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium shadow transition"
-                >
-                  Sign Out
-                </button>
-              </div>
-            ) : (
-              <SignInUser />
-            )}
+            <h1 className="text-center text-2xl font-light text-blue-800">
+              Welcome, <span className="font-semibold">{effectiveName}</span>
+            </h1>
+            <div className="space-y-3">
+              <button
+                onClick={() => setEditing(true)}
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow transition"
+              >
+                Edit Profile
+              </button>
+              <button
+                onClick={async () => {
+                  await auth.signOut();
+                  alert('You have been signed out.');
+                }}
+                className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium shadow transition"
+              >
+                Sign Out
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -215,8 +255,45 @@ const ImageCropUploader = () => {
         )}
       </div>
 
-      <RegisterUser />
+      {!user && (
+        <div className="w-full max-w-lg bg-white shadow-xl rounded-3xl p-6 flex flex-col items-center space-y-4">
+          <SignInUser />
+          <RegisterUser />
+        </div>
+      )}
+
       <UploadProductIfSignedIn />
+
+      {/* 🆕 Display creator's products */}
+      {user && (
+        <div className="w-full max-w-5xl mt-12">
+          <h2 className="text-2xl font-semibold text-blue-800 mb-6 text-center">Dine produkter</h2>
+          {loadingProducts ? (
+            <p className="text-center text-gray-600">Laster produkter...</p>
+          ) : creatorProducts.length === 0 ? (
+            <p className="text-center text-gray-600">Ingen produkter funnet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {creatorProducts.map((product) => (
+                <div key={product.id} className="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden">
+                  <img
+                    src={product.images?.[0] || '/placeholder.jpg'}
+                    alt={product.name}
+                    className="w-full h-56 object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
+                    <p className="text-gray-600">{product.description}</p>
+                    <p className="text-blue-700 font-bold mt-2">
+                      {product.currency?.toUpperCase()} {product.price?.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes glow {
@@ -232,6 +309,17 @@ const ImageCropUploader = () => {
           top: 0; left: 0; right: 0; bottom: 0; z-index: 0;
         }
       `}</style>
+
+      <div className="m-12 ml-0" style={{ width: '70vw', height: '54vh' }}>
+        <Canvas camera={{ position: [100, 2, 100], fov: 50, near: 0.1, far: 1000 }} style={{ width: '100%', height: '100%' }}>
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[5, 5, 5]} intensity={4.2} castShadow />
+          <directionalLight position={[18, -8, -9]} intensity={2.8} />
+          <spotLight position={[0, -2, 0]} angle={0.5} penumbra={1} intensity={1.4} color="#ffffff" castShadow />
+          <Deer position={[0, 0, 0]} scale={0.28} modelPath="/models/deer/scene.gltf" />
+          <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} target={[0, 0, 0]} />
+        </Canvas>
+      </div>
     </div>
   );
 };

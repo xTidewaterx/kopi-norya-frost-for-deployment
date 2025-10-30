@@ -98,7 +98,7 @@ export default async function ProductDetail({ params, searchParams }) {
                     href={`?edit=true`}
                     className="block text-center w-full px-6 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-100 transition-all duration-200"
                   >
-                    Edit Product
+                   Rediger Produkt
                   </Link>
 
                   <div className="flex justify-between text-sm text-neutral-500 pt-2">
@@ -106,13 +106,13 @@ export default async function ProductDetail({ params, searchParams }) {
                       href={`/products/${parseInt(id) + 1}`}
                       className="hover:text-neutral-800 transition"
                     >
-                      → Next Product
+                      → Neste produkt
                     </Link>
                     <Link
                       href="/products/cart"
                       className="hover:text-neutral-800 transition"
                     >
-                      🛒 Go to Cart
+                      🛒 Gå til handlekurv
                     </Link>
                   </div>
                 </div>

@@ -2,125 +2,267 @@
 
 import { useCart } from "react-use-cart";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-const CartPage = () => {
-  const { items, removeItem, updateItemQuantity, emptyCart } = useCart();
-  const [isClient, setIsClient] = useState(false);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+function CheckoutForm({ onBack }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [loadError, setLoadError] = useState(false);
 
-  if (!isClient) return null;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
 
-  const url = "/api/checkout_sessions";
+    setLoading(true);
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: `${window.location.origin}/success` },
+    });
 
-  const postData = {
-    title: "items from cart",
-    items: items,
+    if (error) setMessage(error.message);
+    setLoading(false);
   };
 
-  console.log(postData?.items[0]?.default_price_id);
+  if (!stripe || !elements) {
+    if (!loadError) setLoadError(true);
+    return <p className="text-red-600">Payment setup failed. Please refresh the page.</p>;
+  }
 
-  const priceId = postData.items[0]?.default_price_id;
+  return (
+    <div className="w-full max-w-xl">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <PaymentElement />
+        <button
+          type="submit"
+          disabled={!stripe || loading}
+          className="w-full bg-yellow-400 text-blue-950 font-semibold py-3 rounded-lg hover:bg-yellow-300 transition shadow-md"
+        >
+          {loading ? "Processing…" : "Fullfør betaling"}
+        </button>
+        {message && <div className="text-red-600 mt-2">{message}</div>}
+      </form>
+      <button
+        onClick={onBack}
+        className="mt-6 text-blue-700 underline hover:text-blue-900"
+      >
+        ← Tilbake til handlekurv
+      </button>
+    </div>
+  );
+}
 
-  const filteredMappedItems = items.reduce((filteredItems, { default_price_id, quantity }) => {
-    filteredItems.push({ default_price_id, quantity });
-    return filteredItems;
-  }, []);
+export default function CartPage() {
+  const { items, removeItem, updateItemQuantity, emptyCart } = useCart();
+  const [isClient, setIsClient] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [clientSecret, setClientSecret] = useState(null);
+  const [loadingSecret, setLoadingSecret] = useState(false);
 
-  const createCheckoutSession = async () => {
-    const getPriceInfo = async () => {
-      const res = await fetch('/api/get_price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId }),
+  const [shippingOption, setShippingOption] = useState({ id: 'standard', name: 'Standard shipping (2-4 days)', cost: 500 });
+
+  useEffect(() => setIsClient(true), []);
+  if (!isClient) return null;
+
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalSum = subtotal + shippingOption.cost;
+
+  const handleCheckout = async () => {
+    if (!items.length) return;
+
+    setLoadingSecret(true);
+    try {
+      const lineItems = items.map(item => ({
+        name: item.name,
+        price: Math.round(item.price),
+        quantity: item.quantity,
+      }));
+
+      const res = await fetch("/api/checkout_sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: lineItems, shipping: shippingOption }),
       });
 
       const data = await res.json();
-      console.log('Price info:', data);
-      return data;
-    };
 
-    console.log("items in cart page.js client:", items);
-
-    const priceData = await getPriceInfo();
-    console.log("priceInfo:", priceData);
-
-    const response = await fetch("https://localhost:3000/api/checkout_sessions", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(filteredMappedItems),
-    });
-
-    const data = await response.json();
-    if (data.url) {
-      console.log("data url from backend response:", data.url);
-      window.location.href = data.url;
+      if (data.client_secret) {
+        setClientSecret(data.client_secret);
+        setShowCheckout(true);
+      } else {
+        console.error("No client_secret returned:", data);
+        alert("Failed to initialize payment. Try again.");
+      }
+    } catch (err) {
+      console.error("Error creating checkout session:", err);
+      alert("Failed to initialize payment. Try again.");
     }
+    setLoadingSecret(false);
   };
 
-  const mappedItems = () => items.map(item => ({ price: item.price, quantity: item.quantity }));
+  // 3D perspective for thick object feel
+  const containerStyle = {
+    perspective: 2000,
+    transformStyle: "preserve-3d",
+    width: "100%",
+  };
 
-  console.log("in our cart page.js this is our cart items:", items, "mappedItems:", filteredMappedItems);
-
-  const totalSum = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cardTransition = { duration: 0.4, ease: "easeInOut" };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-2xl bg-white shadow-lg rounded-lg p-6">
-        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-4">Your Cart</h1>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex justify-center items-center px-6 py-10">
+      <div style={containerStyle}>
+        <AnimatePresence mode="wait">
+          {!showCheckout ? (
+            <motion.div
+              key="cart"
+              initial={{ rotateY: 0, scale: 1, rotateX: 0 }}
+              animate={{ rotateY: 0, scale: 1, rotateX: 0 }}
+              exit={{
+                rotateY: 180,
+                rotateX: 5, // subtle top tilt
+                scale: 0.97,
+                opacity: 0.95,
+              }}
+              transition={cardTransition}
+              className="grid md:grid-cols-2 w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+              style={{ backfaceVisibility: "hidden", transformOrigin: "center" }}
+            >
+              {/* Left column – products */}
+              <div className="p-8 md:p-10">
+                <h1 className="text-3xl font-semibold text-blue-950 mb-8 text-center tracking-wide">
+                  Handlekurv
+                </h1>
 
-        {items.length === 0 ? (
-          <p className="text-center text-gray-600">Your cart is empty.</p>
-        ) : (
-          <div>
-            {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between border-b py-4">
-                <p className="text-gray-800">{item.name} - ${item.price}</p>
-                <div className="flex items-center space-x-3">
+                {items.length === 0 ? (
+                  <p className="text-center text-blue-800">Handlekurven er tom.</p>
+                ) : (
+                  <div className="space-y-8">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between border-b border-blue-200 pb-5">
+                        <div className="flex items-center space-x-4">
+                          <img
+                            src={item.images?.[0] || "/placeholder.png"}
+                            alt={item.name}
+                            className="w-20 h-20 object-cover rounded-xl border border-blue-200 shadow-sm"
+                          />
+                          <div>
+                            <p className="font-medium text-blue-950 text-lg">{item.name}</p>
+                            {item.artist && (
+                              <p className="text-blue-700 text-sm font-light">av {item.artist}</p>
+                            )}
+                            <p className="text-blue-800 text-sm font-semibold mt-1">
+                              {(item.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <button onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
+                                  className="px-3 py-1 bg-blue-100 text-blue-900 rounded-md hover:bg-blue-200 transition">−</button>
+                          <span className="font-semibold text-blue-900">{item.quantity}</span>
+                          <button onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                                  className="px-3 py-1 bg-blue-100 text-blue-900 rounded-md hover:bg-blue-200 transition">+</button>
+                          <button onClick={() => removeItem(item.id)}
+                                  className="px-4 py-1 text-sm bg-yellow-400 text-blue-950 font-medium rounded-md hover:bg-yellow-300 transition">
+                            Fjern
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Right column – summary */}
+              <div className="bg-blue-400 text-blue-50 p-8 md:p-10 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Oppsummering</h2>
+                  <div className="mb-4">
+                    <p className="text-blue-100 mb-2 font-medium">Velg frakt</p>
+                    <select
+                      value={shippingOption.id}
+                      onChange={(e) => {
+                        const option = shippingOptions.find(opt => opt.id === e.target.value);
+                        setShippingOption(option);
+                      }}
+                      className="w-full px-4 py-2 rounded-lg border border-blue-700 bg-blue-800 text-blue-50"
+                    >
+                      <option value="standard">Standard shipping (2-4 days) – 50,00 NOK</option>
+                      <option value="express">Express shipping (1-2 days) – 100,00 NOK</option>
+                    </select>
+                  </div>
+
+                  <div className="flex justify-between text-lg font-medium border-t border-blue-700 pt-4">
+                    <span>Subtotal:</span>
+                    <span className="text-yellow-400">
+                      {(subtotal / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-lg font-medium mt-2">
+                    <span>Frakt:</span>
+                    <span className="text-yellow-400">
+                      {(shippingOption.cost / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-lg font-semibold mt-2 border-t border-blue-700 pt-2">
+                    <span>Total:</span>
+                    <span className="text-yellow-400">
+                      {(totalSum / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} NOK
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-10 space-y-4">
                   <button
-                    onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
-                    className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
+                    onClick={handleCheckout}
+                    disabled={loadingSecret}
+                    className="w-full bg-yellow-400 text-blue-950 font-semibold py-3 rounded-lg hover:bg-yellow-300 transition shadow-md"
                   >
-                    -
+                    {loadingSecret ? "Preparing…" : "Gå til kassen"}
                   </button>
-                  <span className="text-gray-800 font-medium">{item.quantity}</span>
                   <button
-                    onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                    className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
+                    onClick={emptyCart}
+                    className="w-full bg-blue-800 text-white py-3 rounded-lg hover:bg-blue-700 transition"
                   >
-                    +
-                  </button>
-                  <button
-                    onClick={() => removeItem(item.id)}
-                    className="px-4 py-1 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-800"
-                  >
-                    Remove
+                    Tøm handlekurv
                   </button>
                 </div>
               </div>
-            ))}
-            <div className="mt-6 text-center">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Total: <span className="text-gray-600">${totalSum.toFixed(2)}</span>
-              </h2>
-              <button
-                onClick={emptyCart}
-                className="mt-4 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800"
-              >
-                Empty Cart
-              </button>
-            </div>
-
-            <button onClick={() => createCheckoutSession()} className="btn btn-blue">
-              Gå til kassen
-            </button>
-          </div>
-        )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="checkout"
+              initial={{ rotateY: -180, rotateX: -5, scale: 0.97, opacity: 0.95 }}
+              animate={{ rotateY: 0, rotateX: 0, scale: 1, opacity: 1 }}
+              exit={{ rotateY: 180, rotateX: 5, scale: 0.97, opacity: 0.95 }}
+              transition={cardTransition}
+              className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl p-10 flex flex-col items-center justify-center"
+              style={{ backfaceVisibility: "hidden", transformOrigin: "center" }}
+            >
+              <h2 className="text-2xl font-semibold text-blue-950 mb-6">Fullfør betaling</h2>
+              {clientSecret ? (
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <CheckoutForm onBack={() => setShowCheckout(false)} />
+                </Elements>
+              ) : (
+                <p className="text-gray-600">Preparing checkout…</p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
-};
+}
 
-export default CartPage;
+// Shipping options
+const shippingOptions = [
+  { id: "standard", name: "Standard shipping (2-4 days)", cost: 500 },
+  { id: "express", name: "Express shipping (1-2 days)", cost: 1000 },
+];

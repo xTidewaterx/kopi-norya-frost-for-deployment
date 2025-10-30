@@ -1,19 +1,26 @@
 'use client';
 
-
 import { AuthProvider } from './auth/authContext';
 
 import MainBanner from './components/homePage/banner/MainBanner';
 import GetProducts from './components/homePage/get/GetProducts';
+import { Canvas } from '@react-three/fiber';
+import Deer from './components/Deer';
 
-import HeroBanner from './components/homePage/banner/SecondBanner'
-import Footer from './components/Footer'
-import UserRow2 from './components/UserRow2'
-import UserRow from './components/UserRow'
+import { OrbitControls } from '@react-three/drei';
+import HeroBanner from './components/homePage/banner/SecondBanner';
+import Footer from './components/Footer';
+import UserRow2 from './components/UserRow2';
+import UserRow from './components/UserRow';
 import createPublicUserDoc from './components/SyncUsersButton';
 import SyncUsersButton from './components/SyncUsersButton';
-export default function Home() {
+import TestScroll from './testScroll';
+import CreateShipmentButton from './components/homePage/atoms/CreateShipmentButton';
 
+
+
+
+export default function Home() {
   return (
     <AuthProvider>
       {/* Optional navigation bar */}
@@ -21,20 +28,15 @@ export default function Home() {
 
       <MainBanner />
       <GetProducts />
-  
 
       {/* Placeholder for your future chat system */}
       {/* You can conditionally render chat components here based on user state */}
- <HeroBanner/>
--
-<UserRow/>
+      <HeroBanner />
+      
+      <UserRow />
 
-
-
+<CreateShipmentButton />
 
     </AuthProvider>
   );
 }
-
-
-
